@@ -8,6 +8,7 @@ import { ChatView } from "./components/ChatView";
 import { EvalPanel } from "./components/EvalPanel";
 import { SwarmForgeIDE } from "./components/SwarmForgeIDE";
 import { RefactorStudio } from "./components/RefactorStudio";
+import { SnippetForge } from "./components/SnippetForge";
 
 export default function SwarmForgeAI() {
   const [screen, setScreen] = useState("home");
@@ -44,6 +45,7 @@ export default function SwarmForgeAI() {
     if (id === "eval") { setTab("eval"); setScreen("askdocs"); }
     else if (id === "swarmide") setScreen("swarmide");
     else if (id === "refactor") setScreen("refactor");
+    else if (id === "snippets") setScreen("snippets");
     else setScreen(id);
   };
 
@@ -124,6 +126,32 @@ export default function SwarmForgeAI() {
         </div>
         <div style={{ flex:1, overflow:"hidden" }}>
           <RefactorStudio onBack={() => setScreen("home")} />
+        </div>
+        <ToastLayer top={52}/>
+      </div>
+    );
+  }
+
+  // SNIPPET FORGE
+  if (screen === "snippets") {
+    return (
+      <div style={{ height:"100vh", width:"100%", display:"flex", flexDirection:"column", overflow:"hidden", fontFamily:"'Segoe UI',system-ui,sans-serif" }}>
+        <style>{GLOBAL_STYLES}</style>
+        <div style={{ display:"flex", alignItems:"center", gap:8, padding:"0 12px", height:44, background:C.white, borderBottom:`1px solid ${C.border}`, flexShrink:0, zIndex:10 }}>
+          <button onClick={()=>setScreen("home")} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:8, border:`1px solid ${C.border}`, background:C.surface, color:C.muted, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all .15s" }}
+            onMouseEnter={e=>{ e.currentTarget.style.borderColor=C.cyan; e.currentTarget.style.color=C.cyan; e.currentTarget.style.background=C.cyan+"0f"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.muted; e.currentTarget.style.background=C.surface; }}>
+            ← Home
+          </button>
+          <span style={{ color:C.border, fontSize:16 }}>|</span>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:26, height:26, borderRadius:7, background:`linear-gradient(135deg,${C.cyan},${C.indigo})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>🧩</div>
+            <span style={{ fontWeight:800, fontSize:14, color:C.text }}>Snippet Forge</span>
+            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:10, background:C.cyan+"18", color:C.cyan, border:`1px solid ${C.cyan}33`, fontWeight:700, letterSpacing:.4 }}>CODE</span>
+          </div>
+        </div>
+        <div style={{ flex:1, overflow:"hidden" }}>
+          <SnippetForge onBack={() => setScreen("home")} />
         </div>
         <ToastLayer top={52}/>
       </div>

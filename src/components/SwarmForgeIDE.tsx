@@ -1,21 +1,73 @@
 import React, { useState, useRef, useEffect } from "react";
-import { C } from "../theme";
+import { C as ThemeC } from "../theme";
 import { Spin } from "./ui";
 import { callGemini } from "../gemini";
 
-const IDE_FILES = [
-  { name:"index.html", icon:"🌐", color:C.ideCyan,   lang:"html" },
-  { name:"styles.css", icon:"🎨", color:"#f472b6",   lang:"css"  },
-  { name:"app.js",     icon:"⚡", color:C.ideAmber,  lang:"js"   },
-  { name:"README.md",  icon:"📝", color:C.ideMuted,  lang:"md"   },
-];
+const THEMES = {
+  dark: {
+    name: "Dark (Default)",
+    bg:       "#080a14",
+    panel:    "#0d0f1e",
+    sidebar:  "#070910",
+    border:   "#181b30",
+    text:     "#c8d0ec",
+    muted:    "#404870",
+    faint:    "#232748",
+    accent:   "#4f46e5",
+    green:    "#22c55e",
+    amber:    "#f97316",
+    cyan:     "#38bdf8",
+    violet:   "#a78bfa",
+    rose:     "#fb7185",
+    active:   "#161928",
+    hover:    "#12152a",
+    orange:   "#fb923c",
+  },
+  light: {
+    name: "Light",
+    bg:       "#f8fafc",
+    panel:    "#ffffff",
+    sidebar:  "#f1f5f9",
+    border:   "#e2e8f0",
+    text:     "#0f172a",
+    muted:    "#64748b",
+    faint:    "#e2e8f0",
+    accent:   "#3b82f6",
+    green:    "#16a34a",
+    amber:    "#ea580c",
+    cyan:     "#0284c7",
+    violet:   "#7c3aed",
+    rose:     "#e11d48",
+    active:   "#e2e8f0",
+    hover:    "#f1f5f9",
+    orange:   "#f97316",
+  },
+  dracula: {
+    name: "Dracula",
+    bg:       "#282a36",
+    panel:    "#21222c",
+    sidebar:  "#1e1f29",
+    border:   "#44475a",
+    text:     "#f8f8f2",
+    muted:    "#6272a4",
+    faint:    "#44475a",
+    accent:   "#ff79c6",
+    green:    "#50fa7b",
+    amber:    "#ffb86c",
+    cyan:     "#8be9fd",
+    violet:   "#bd93f9",
+    rose:     "#ff5555",
+    active:   "#44475a",
+    hover:    "#44475a88",
+    orange:   "#ffb86c",
+  }
+};
 
-const AGENTS = [
-  { name:"Architect", icon:"🏛️", color:C.ideViolet },
-  { name:"Engineer",  icon:"🔧", color:C.ideCyan    },
-  { name:"Designer",  icon:"🎨", color:"#f472b6"    },
-  { name:"Creative",  icon:"💡", color:C.ideAmber   },
-  { name:"Tester",    icon:"🧪", color:C.ideGreen   },
+const FONTS = [
+  { name: "SF Mono / Fira Code", value: "'SF Mono','Fira Code','Cascadia Code',monospace" },
+  { name: "JetBrains Mono", value: "'JetBrains Mono', monospace" },
+  { name: "Consolas", value: "Consolas, monospace" },
+  { name: "Ubuntu Mono", value: "'Ubuntu Mono', monospace" },
 ];
 
 const QUICK_PROMPTS = [
@@ -26,6 +78,47 @@ const QUICK_PROMPTS = [
 ];
 
 export function SwarmForgeIDE() {
+  const [showSettings, setShowSettings] = useState(false);
+  const [ideTheme, setIdeTheme] = useState<keyof typeof THEMES>("dark");
+  const [ideFont, setIdeFont] = useState(FONTS[0].value);
+  const [ideFontSize, setIdeFontSize] = useState(13);
+
+  const T = THEMES[ideTheme];
+  const C = {
+    ...ThemeC,
+    ideBg: T.bg,
+    idePanel: T.panel,
+    ideSidebar: T.sidebar,
+    ideBorder: T.border,
+    ideText: T.text,
+    ideMuted: T.muted,
+    ideFaint: T.faint,
+    ideAccent: T.accent,
+    ideGreen: T.green,
+    ideAmber: T.amber,
+    ideCyan: T.cyan,
+    ideViolet: T.violet,
+    ideRose: T.rose,
+    ideActive: T.active,
+    ideHover: T.hover,
+    ideOrange: T.orange,
+  };
+
+  const IDE_FILES = [
+    { name:"index.html", icon:"🌐", color:C.ideCyan,   lang:"html" },
+    { name:"styles.css", icon:"🎨", color:"#f472b6",   lang:"css"  },
+    { name:"app.js",     icon:"⚡", color:C.ideAmber,  lang:"js"   },
+    { name:"README.md",  icon:"📝", color:C.ideMuted,  lang:"md"   },
+  ];
+
+  const AGENTS = [
+    { name:"Architect", icon:"🏛️", color:C.ideViolet },
+    { name:"Engineer",  icon:"🔧", color:C.ideCyan    },
+    { name:"Designer",  icon:"🎨", color:"#f472b6"    },
+    { name:"Creative",  icon:"💡", color:C.ideAmber   },
+    { name:"Tester",    icon:"🧪", color:C.ideGreen   },
+  ];
+
   const [activeFile, setActiveFile]   = useState("index.html");
   const [activeTab, setActiveTab]     = useState("code"); // code | preview
   const [swarmOn, setSwarmOn]         = useState(true);
@@ -35,7 +128,10 @@ export function SwarmForgeIDE() {
   ]);
   const [loading, setLoading]         = useState(false);
   const [generatedCode, setGenCode]   = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const chatRef = useRef<HTMLDivElement>(null);
+
+  const filteredFiles = IDE_FILES.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   useEffect(()=>{ chatRef.current?.scrollTo({top:99999,behavior:"smooth"}); },[chatMsgs,loading]);
 
@@ -70,7 +166,7 @@ Then write a complete, beautiful HTML file with embedded CSS and JS that impleme
   };
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", height:"100%", background:C.ideBg, color:C.ideText, fontFamily:"'SF Mono','Fira Code','Cascadia Code',monospace" }}>
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", background:C.ideBg, color:C.ideText, fontFamily:ideFont }}>
 
       {/* ── TOP BAR ── */}
       <div style={{ display:"flex", alignItems:"center", padding:"0 12px", height:48, background:C.idePanel, borderBottom:`1px solid ${C.ideBorder}`, gap:8, flexShrink:0 }}>
@@ -117,6 +213,9 @@ Then write a complete, beautiful HTML file with embedded CSS and JS that impleme
           <span style={{ width:7, height:7, borderRadius:"50%", background:swarmOn?C.ideGreen:C.ideMuted, display:"inline-block", boxShadow:swarmOn?`0 0 6px ${C.ideGreen}`:"none" }}/>
           Swarm {swarmOn?"ON":"OFF"}
         </button>
+        <button onClick={()=>setShowSettings(true)} style={{ display:"flex", alignItems:"center", justifyContent:"center", width:30, height:30, borderRadius:8, border:`1px solid ${C.ideBorder}`, background:"transparent", color:C.ideMuted, fontSize:14, cursor:"pointer" }}>
+          ⚙️
+        </button>
       </div>
 
       {/* ── MAIN BODY ── */}
@@ -131,15 +230,26 @@ Then write a complete, beautiful HTML file with embedded CSS and JS that impleme
             <button style={{ background:"none", border:"none", color:C.ideAccent, fontSize:18, cursor:"pointer", lineHeight:1, padding:0 }}>+</button>
           </div>
 
+          {/* Search bar */}
+          <div style={{ padding: "8px 14px", borderBottom: `1px solid ${C.ideBorder}` }}>
+            <input 
+              type="text" 
+              placeholder="Search files..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.ideBorder}`, background: C.ideBg, color: C.ideText, fontSize: 11, outline: "none" }}
+            />
+          </div>
+
           {/* File list */}
           <div style={{ flex:1, padding:"6px 0", overflowY:"auto" }}>
-            {IDE_FILES.map(f => (
+            {filteredFiles.map(f => (
               <button key={f.name} onClick={()=>setActiveFile(f.name)}
                 style={{ width:"100%", display:"flex", alignItems:"center", gap:9, padding:"7px 14px", background:activeFile===f.name?C.ideActive:"transparent", border:"none", cursor:"pointer", textAlign:"left", borderLeft:activeFile===f.name?`2px solid ${C.ideAccent}`:"2px solid transparent", transition:"all .1s" }}
                 onMouseEnter={e=>{ if(activeFile!==f.name) e.currentTarget.style.background=C.ideHover; }}
                 onMouseLeave={e=>{ if(activeFile!==f.name) e.currentTarget.style.background="transparent"; }}>
                 <span style={{ fontSize:14, flexShrink:0 }}>{f.icon}</span>
-                <span style={{ fontSize:12, color:activeFile===f.name?"white":f.color, fontWeight:activeFile===f.name?600:400, fontFamily:"'SF Mono','Fira Code',monospace" }}>{f.name}</span>
+                <span style={{ fontSize:12, color:activeFile===f.name?"white":f.color, fontWeight:activeFile===f.name?600:400, fontFamily:ideFont }}>{f.name}</span>
               </button>
             ))}
           </div>
@@ -167,7 +277,7 @@ Then write a complete, beautiful HTML file with embedded CSS and JS that impleme
               <button key={f.name} onClick={()=>setActiveFile(f.name)}
                 style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px", background:activeFile===f.name?C.ideBg:"transparent", border:"none", borderRight:`1px solid ${C.ideBorder}`, borderBottom:activeFile===f.name?`1.5px solid ${C.ideAccent}`:"1.5px solid transparent", color:activeFile===f.name?"white":C.ideMuted, cursor:"pointer", fontSize:12, whiteSpace:"nowrap", transition:"all .1s" }}>
                 <span style={{ fontSize:12 }}>{f.icon}</span>
-                <span style={{ fontFamily:"'SF Mono','Fira Code',monospace", color:activeFile===f.name?f.color:C.ideMuted }}>{f.name}</span>
+                <span style={{ fontFamily:ideFont, color:activeFile===f.name?f.color:C.ideMuted }}>{f.name}</span>
               </button>
             ))}
           </div>
@@ -179,7 +289,7 @@ Then write a complete, beautiful HTML file with embedded CSS and JS that impleme
                 <iframe srcDoc={generatedCode} style={{ width:"100%", height:"100%", border:"none" }} title="preview"/>
               </div>
             ) : (
-              <pre style={{ margin:0, fontSize:12, lineHeight:1.75, color:C.ideText, fontFamily:"'SF Mono','Fira Code','Cascadia Code',monospace" }}>
+              <pre style={{ margin:0, fontSize:ideFontSize, lineHeight:1.75, color:C.ideText, fontFamily:ideFont }}>
                 {generatedCode ? (
                   <code style={{ color:C.ideText }}>{generatedCode.slice(0,2000)}{generatedCode.length>2000?"…":""}</code>
                 ) : (
@@ -318,7 +428,7 @@ Then write a complete, beautiful HTML file with embedded CSS and JS that impleme
           <span style={{ fontSize:10, fontWeight:700, color:C.ideViolet }}>SwarmForge v1.0</span>
         </div>
         <div style={{ width:1, height:12, background:C.ideBorder }}/>
-        <span style={{ fontSize:10, color:C.ideMuted, fontFamily:"monospace" }}>{activeFile}</span>
+        <span style={{ fontSize:10, color:C.ideMuted, fontFamily:ideFont }}>{activeFile}</span>
         <div style={{ width:1, height:12, background:C.ideBorder }}/>
         <span style={{ fontSize:10, color:C.ideMuted }}>4 files</span>
         <div style={{flex:1}}/>
@@ -331,6 +441,45 @@ Then write a complete, beautiful HTML file with embedded CSS and JS that impleme
           </span>
         </div>
       </div>
+
+      {/* ── SETTINGS MODAL ── */}
+      {showSettings && (
+        <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)", zIndex:999, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ width:400, background:C.idePanel, border:`1px solid ${C.ideBorder}`, borderRadius:12, padding:20, boxShadow:`0 10px 30px rgba(0,0,0,0.3)`, color:C.ideText, fontFamily:"'Segoe UI',system-ui,sans-serif" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <h3 style={{ margin:0, fontSize:16 }}>IDE Settings</h3>
+              <button onClick={()=>setShowSettings(false)} style={{ background:"none", border:"none", color:C.ideMuted, cursor:"pointer", fontSize:16 }}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.ideMuted, marginBottom:8 }}>Color Theme</label>
+              <select value={ideTheme} onChange={e=>setIdeTheme(e.target.value as keyof typeof THEMES)} style={{ width:"100%", padding:8, borderRadius:6, background:C.ideBg, border:`1px solid ${C.ideBorder}`, color:C.ideText, outline:"none" }}>
+                {Object.entries(THEMES).map(([k, v]) => (
+                  <option key={k} value={k}>{v.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.ideMuted, marginBottom:8 }}>Font Family</label>
+              <select value={ideFont} onChange={e=>setIdeFont(e.target.value)} style={{ width:"100%", padding:8, borderRadius:6, background:C.ideBg, border:`1px solid ${C.ideBorder}`, color:C.ideText, outline:"none" }}>
+                {FONTS.map(f => (
+                  <option key={f.name} value={f.value}>{f.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom:20 }}>
+              <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.ideMuted, marginBottom:8 }}>Font Size ({ideFontSize}px)</label>
+              <input type="range" min={11} max={18} step={1} value={ideFontSize} onChange={e=>setIdeFontSize(parseInt(e.target.value))} style={{ width:"100%", cursor:"pointer" }} />
+            </div>
+
+            <div style={{ display:"flex", justifyContent:"flex-end" }}>
+              <button onClick={()=>setShowSettings(false)} style={{ padding:"8px 16px", background:C.ideAccent, color:"white", border:"none", borderRadius:6, cursor:"pointer", fontWeight:600 }}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

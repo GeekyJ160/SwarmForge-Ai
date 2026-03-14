@@ -6,6 +6,7 @@ export function HomeScreen({ onNavigate }: any) {
     { id:"askdocs", icon:"🔍", label:"Ask My Docs", desc:"RAG-powered Q&A over your documents",      tag:"RAG", color:C.indigo },
     { id:"swarmide",  icon:"⚡", label:"Swarm IDE",  desc:"AI agent swarm code editor & preview",     tag:"IDE", color:C.amber },
     { id:"refactor",icon:"♻️", label:"Refactor Forge", desc:"AI-powered code refactoring and optimization", tag:"CODE", color:C.emerald },
+    { id:"snippets",icon:"🧩", label:"Snippet Forge", desc:"Generate code snippets from natural language", tag:"CODE", color:C.cyan },
     { id:"eval",    icon:"🧪", label:"Eval & Logs", desc:"Replay queries, score answers, view logs", tag:"OPS", color:C.teal },
   ];
 
